@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Modern Video Player • DaisyUI</title>
+  <!-- DaisyUI + TailwindCSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.4/dist/full.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Plyr CSS + JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.2/dist/plyr.css" />
+  <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.2/dist/plyr.polyfilled.min.js"></script>
+  <!-- Youtube Iframe API will be loaded dynamically -->
+  <style>
+    :root {
+      --color-bg-light: #f3f4f6;
+      --color-bg-dark: #13151a;
+      --color-primary-light: #1d4ed8;
+      --color-primary-dark: #60a5fa;
+      --color-card: #ffffff;
+      --color-card-dark: #222736;
+      --color-text-light: #22223b;
+      --color-text-dark: #f5f7fa;
+    }
+    [data-theme="dark"] {
+      --color-bg: var(--color-bg-dark);
+      --color-primary: var(--color-primary-dark);
+      --color-card: var(--color-card-dark);
+      --color-text: var(--color-text-dark);
+    }
+    [data-theme="light"] {
+      --color-bg: var(--color-bg-light);
+      --color-primary: var(--color-primary-light);
+      --color-card: var(--color-card);
+      --color-text: var(--color-text-light);
+    }
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      transition: background .3s, color .3s;
+    }
+    .plyr__video-wrapper {
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    .video-container {
+      aspect-ratio: 16/9;
+      width: 100%;
+      background: #11131a10;
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    .yt-iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: none;
+      border-radius: 1rem;
+      background: #11131a10;
+      display: block;
+    }
+    .greet {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 2.5rem;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+<div id="root" class="min-h-screen flex flex-col">
+  <!-- Topbar -->
+  <div class="navbar shadow-md bg-base-100 px-6 py-2 sticky top-0 z-50 flex items-center justify-between">
+    <div class="flex-1 text-lg font-bold tracking-tight select-none">
+      <span class="text-primary">Abhishek Choti Lulli Wala</span>
+    </div>
+    <!-- Theme toggle -->
+    <button id="themeToggle" class="btn btn-ghost btn-circle">
+      <span id="theme-icon" class="transition-all duration-300">
+        <!-- Will be replaced by JS --></span>
+    </button>
+  </div>
+  
+  <!-- Space -->
+  <div style="height: 2rem;"></div>
+  
+  <!-- Greeting -->
+  <div style="text-align: center;" class="greet" id="greet-msg"></div>
+  
+  <!-- Video player -->
+  <div class="flex flex-col items-center w-full px-2 md:px-0">
+    <div class="video-container max-w-2xl w-full mb-6" id="player-container">
+      <!-- JS will inject actual player here -->
+    </div>
+  </div>
+  
+  <!-- Cards section -->
+  <div class="flex flex-wrap justify-center gap-6 px-4 pb-12">
+    <!-- Cards will be injected by JS -->
+  </div>
+</div>
+
+<!-- YT API will be injected via JS -->
+<script>
+  // ======= Demo Card Data =======
+  const videoList = [
+    {
+      "title": "Carbonyl Compound Lec 5",
+      "videotype": "selfhosted",
+      "videourl": "https://cloudstore-a4df57c6fb39.herokuapp.com/dl/68862444ed7c6180f5c9e76b",
+      "thumbnail": "https://images.unsplash.com/photo-1522199755839-a2bacb67c546?fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Saiyaara",
+      "videotype": "youtube",
+      "videourl": "https://youtu.be/BSJa1UytM8w?feature=shared",
+      "thumbnail": "https://i.ytimg.com/vi/BSJa1UytM8w/mqdefault.jpg"
+    }
+  ];
+
+  // ========== GREETING based on IST time ============
+  function getGreetingIST() {
+    // IST is UTC+5:30
+    const nowUtc = new Date(new Date().toISOString().substr(0, 19) + 'Z');
+    // add 5.5 hours
+    let ist = new Date(nowUtc.getTime() + (330 * 60 * 1000));
+    let hour = ist.getHours();
+    if(hour < 12) return "Good morning";
+    if(hour < 17) return "Good afternoon";
+    return "Good evening";
+  }
+  document.getElementById("greet-msg").textContent = getGreetingIST() + "!";
+
+  // ========== THEME TOGGLE + ICONS =================
+  const sunIcon = `<svg width="24" height="24" fill="none" class="text-yellow-400" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2m10-10h-2m-16 0H2m16.95 7.05l-1.41-1.41M6.46 6.46 5.05 5.05m13.9 0-1.41 1.41M5.05 18.95l1.41-1.41"/></svg>`;
+  const moonIcon = `<svg width="24" height="24" fill="none" class="text-indigo-400" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 12.21 3a7 7 0 1 0 8.79 9.79z"/></svg>`;
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+    document.getElementById('theme-icon').innerHTML = theme === 'light' ? moonIcon : sunIcon;
+  }
+  // Initialize theme
+  (function(){
+    const stored = localStorage.getItem('theme');
+    setTheme(stored === 'dark' ? 'dark' : 'light');
+    document.getElementById('themeToggle').onclick = function() {
+      let current = document.documentElement.getAttribute('data-theme');
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+  })();
+
+  // ========== PLAYER LOGIC (Plyr + YT) =============
+  let currentPlayer = null;
+  let ytPlayer = null;
+  let ytApiReady = false;
+
+  // Helper: Extract YouTube Video ID
+  function getYouTubeID(url) {
+    try {
+      let u = url;
+      if(u.indexOf('youtu')===-1) return null;
+      // Short youtu.be
+      if(u.includes('youtu.be/')) return u.split('youtu.be/')[1].split(/[?&]/)[0];
+      // Normal watch?v=...
+      let match = u.match(/[?&]v=([^&]+)/);
+      if(match) return match[1];
+      // Embed form etc
+      let id = u.split('/').reverse()[0].split(/[?&]/)[0];
+      if(id.length===11) return id;
+    } catch{ }
+    return null;
+  }
+
+  // Inject Player based on Type
+  function loadPlayer(video) {
+    const cont = document.getElementById('player-container');
+    cont.innerHTML = '';
+    // Destroy previous Plyr if any
+    if(currentPlayer && currentPlayer.destroy) {
+      currentPlayer.destroy();
+      currentPlayer = null;
+    }
+    // Destroy YouTube player if exists
+    if(ytPlayer && ytPlayer.destroy) {
+      ytPlayer.destroy();
+      ytPlayer = null;
+    }
+    if(video.videotype === 'selfhosted') {
+      // Plyr HTML5 Video
+      let videoEl = document.createElement('video');
+      videoEl.setAttribute('controls', '');
+      videoEl.setAttribute('playsinline', '');
+      videoEl.setAttribute('id', 'plyr-video');
+      videoEl.className = 'w-full h-full rounded-2xl bg-gray-800';
+      videoEl.innerHTML = `<source src="${video.videourl}" type="video/mp4"/>`;
+      cont.appendChild(videoEl);
+      setTimeout(()=>{
+        currentPlayer = new Plyr(videoEl, {
+          ratio: '16:9',
+          controls: ['play','progress','current-time','mute','volume','fullscreen']
+        });
+      });
+    } else if(video.videotype === 'youtube') {
+      // YouTube Embed
+      let vid = getYouTubeID(video.videourl);
+      if(!vid) {
+        cont.innerHTML = `<div class='text-error p-5'>Invalid YouTube Link</div>`;
+        return;
+      }
+      // Use iFrame API for controls: embed API player or fallback
+      let ytDiv = document.createElement('div');
+      ytDiv.id = 'ytplayer-div';
+      cont.appendChild(ytDiv);
+      // Ensure API loaded
+      function createYT(){
+        ytPlayer = new YT.Player('ytplayer-div', {
+          height: '100%',
+          width: '100%',
+          videoId: vid,
+          playerVars: {
+            'autoplay': 1,
+            'controls': 1,
+            'rel': 0
+          }
+        });
+      }
+      if(ytApiReady) createYT();
+      else {
+        window.onYouTubeIframeAPIReady = function() {
+          ytApiReady = true;
+          createYT();
+        };
+        // Only add script once
+        if(!document.getElementById('yt-iframe-api-script')){
+          const tag = document.createElement('script');
+          tag.src = "https://www.youtube.com/iframe_api";
+          tag.id = 'yt-iframe-api-script';
+          document.body.appendChild(tag);
+        }
+      }
+    }
+  }
+
+  // ========== CARDS (video list) ===========
+  function renderCards() {
+    const cardCont = document.querySelector('.flex-wrap.justify-center');
+    cardCont.innerHTML = '';
+    videoList.forEach((video, idx) => {
+      const card = document.createElement('div');
+      card.className = "card w-80 bg-base-200 shadow-xl hover:scale-105 transition-transform duration-200 cursor-pointer";
+      card.innerHTML = `
+        <figure class="aspect-w-16 aspect-h-9">
+          <img src="${video.thumbnail}" alt="${video.title}" class="w-full object-cover h-48 rounded-t-xl"/>
+        </figure>
+        <div class="card-body p-4">
+          <h2 class="card-title text-base font-semibold">${video.title}</h2>
+        </div>
+      `;
+      card.onclick = ()=>loadPlayer(video);
+      cardCont.appendChild(card);
+
+      // Play first by default
+      if(idx===0){
+        setTimeout(()=>{ loadPlayer(video) },1);
+      }
+    });
+  }
+  renderCards();
+
+  // ========== Persist Greeting Update ==========
+  // (update greeting every minute, just for fun)
+  setInterval(()=>{
+    document.getElementById("greet-msg").textContent = getGreetingIST()+"!";
+  }, 60*1000);
+
+</script>
+</body>
+</html>
